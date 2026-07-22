@@ -3,11 +3,11 @@ use crate::codec::UserError::*;
 use crate::frame::{self, Frame, FrameSize};
 use crate::hpack;
 
+use crate::futures_codec::poll_write_buf;
 use bytes::{Buf, BufMut, BytesMut};
+use futures_io::{AsyncRead, AsyncWrite};
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
-use tokio_util::io::poll_write_buf;
 
 use std::io::{self, Cursor};
 
@@ -83,11 +83,7 @@ where
     B: Buf,
 {
     pub fn new(inner: T) -> FramedWrite<T, B> {
-        let chain_threshold = if inner.is_write_vectored() {
-            CHAIN_THRESHOLD
-        } else {
-            CHAIN_THRESHOLD_WITHOUT_VECTORED_IO
-        };
+        let chain_threshold = CHAIN_THRESHOLD_WITHOUT_VECTORED_IO;
         FramedWrite {
             inner,
             final_flush_done: false,
@@ -182,7 +178,7 @@ where
             ready!(self.flush(cx))?;
             self.final_flush_done = true;
         }
-        Pin::new(&mut self.inner).poll_shutdown(cx)
+        Pin::new(&mut self.inner).poll_close(cx)
     }
 }
 
@@ -357,8 +353,8 @@ impl<T: AsyncRead + Unpin, B> AsyncRead for FramedWrite<T, B> {
     fn poll_read(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
-        buf: &mut ReadBuf,
-    ) -> Poll<io::Result<()>> {
+        buf: &mut [u8],
+    ) -> Poll<io::Result<usize>> {
         Pin::new(&mut self.inner).poll_read(cx, buf)
     }
 }

@@ -12,11 +12,11 @@ use bytes::{Buf, BytesMut};
 
 use std::io;
 
+use crate::futures_codec::FramedRead as InnerFramedRead;
+use crate::futures_codec::{LengthDelimitedCodec, LengthDelimitedCodecError};
+use futures_io::AsyncRead;
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use tokio::io::AsyncRead;
-use tokio_util::codec::FramedRead as InnerFramedRead;
-use tokio_util::codec::{LengthDelimitedCodec, LengthDelimitedCodecError};
 
 // 16 MB "sane default" taken from golang http2
 const DEFAULT_SETTINGS_MAX_HEADER_LIST_SIZE: usize = 16 << 20;

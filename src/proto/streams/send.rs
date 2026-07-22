@@ -7,7 +7,7 @@ use crate::frame::{self, Reason};
 use crate::proto::{self, Error, Initiator};
 
 use bytes::Buf;
-use tokio::io::AsyncWrite;
+use futures_io::AsyncWrite;
 
 use std::cmp::Ordering;
 use std::io;

@@ -121,13 +121,13 @@ use crate::proto::{self, Config, Error, Prioritized};
 use crate::{FlowControl, PingPong, RecvStream, SendStream};
 
 use bytes::{Buf, Bytes};
+use futures_io::{AsyncRead, AsyncWrite};
 use http::{HeaderMap, Method, Request, Response};
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::time::Duration;
 use std::{fmt, io};
-use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tracing::instrument::{Instrument, Instrumented};
 
 /// In progress HTTP/2 connection handshake future.
@@ -175,7 +175,7 @@ pub struct Handshake<T, B: Buf = Bytes> {
 /// # Examples
 ///
 /// ```
-/// # use tokio::io::{AsyncRead, AsyncWrite};
+/// # use futures_io::{AsyncRead, AsyncWrite};
 /// # use h2::server;
 /// # use h2::server::*;
 /// #
@@ -215,7 +215,7 @@ pub struct Connection<T, B: Buf> {
 /// # Examples
 ///
 /// ```
-/// # use tokio::io::{AsyncRead, AsyncWrite};
+/// # use futures_io::{AsyncRead, AsyncWrite};
 /// # use h2::server::*;
 /// #
 /// # fn doc<T: AsyncRead + AsyncWrite + Unpin>(my_io: T)
@@ -354,7 +354,7 @@ const PREFACE: [u8; 24] = *b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
 /// # Examples
 ///
 /// ```
-/// # use tokio::io::{AsyncRead, AsyncWrite};
+/// # use futures_io::{AsyncRead, AsyncWrite};
 /// # use h2::server;
 /// # use h2::server::*;
 /// #
@@ -635,7 +635,7 @@ impl Builder {
     /// # Examples
     ///
     /// ```
-    /// # use tokio::io::{AsyncRead, AsyncWrite};
+    /// # use futures_io::{AsyncRead, AsyncWrite};
     /// # use h2::server::*;
     /// #
     /// # fn doc<T: AsyncRead + AsyncWrite + Unpin>(my_io: T)
@@ -678,7 +678,7 @@ impl Builder {
     /// # Examples
     ///
     /// ```
-    /// # use tokio::io::{AsyncRead, AsyncWrite};
+    /// # use futures_io::{AsyncRead, AsyncWrite};
     /// # use h2::server::*;
     /// #
     /// # fn doc<T: AsyncRead + AsyncWrite + Unpin>(my_io: T)
@@ -712,7 +712,7 @@ impl Builder {
     /// # Examples
     ///
     /// ```
-    /// # use tokio::io::{AsyncRead, AsyncWrite};
+    /// # use futures_io::{AsyncRead, AsyncWrite};
     /// # use h2::server::*;
     /// #
     /// # fn doc<T: AsyncRead + AsyncWrite + Unpin>(my_io: T)
@@ -745,7 +745,7 @@ impl Builder {
     /// # Examples
     ///
     /// ```
-    /// # use tokio::io::{AsyncRead, AsyncWrite};
+    /// # use futures_io::{AsyncRead, AsyncWrite};
     /// # use h2::server::*;
     /// #
     /// # fn doc<T: AsyncRead + AsyncWrite + Unpin>(my_io: T)
@@ -784,7 +784,7 @@ impl Builder {
     /// # Examples
     ///
     /// ```
-    /// # use tokio::io::{AsyncRead, AsyncWrite};
+    /// # use futures_io::{AsyncRead, AsyncWrite};
     /// # use h2::server::*;
     /// #
     /// # fn doc<T: AsyncRead + AsyncWrite + Unpin>(my_io: T)
@@ -844,7 +844,7 @@ impl Builder {
     /// # Examples
     ///
     /// ```
-    /// # use tokio::io::{AsyncRead, AsyncWrite};
+    /// # use futures_io::{AsyncRead, AsyncWrite};
     /// # use h2::server::*;
     /// #
     /// # fn doc<T: AsyncRead + AsyncWrite + Unpin>(my_io: T)
@@ -890,7 +890,7 @@ impl Builder {
     /// # Examples
     ///
     /// ```
-    /// # use tokio::io::{AsyncRead, AsyncWrite};
+    /// # use futures_io::{AsyncRead, AsyncWrite};
     /// # use h2::server::*;
     /// #
     /// # fn doc<T: AsyncRead + AsyncWrite + Unpin>(my_io: T)
@@ -951,7 +951,7 @@ impl Builder {
     ///
     ///
     /// ```
-    /// # use tokio::io::{AsyncRead, AsyncWrite};
+    /// # use futures_io::{AsyncRead, AsyncWrite};
     /// # use h2::server::*;
     /// #
     /// # fn doc<T: AsyncRead + AsyncWrite + Unpin>(my_io: T)
@@ -1015,7 +1015,7 @@ impl Builder {
     /// # Examples
     ///
     /// ```
-    /// # use tokio::io::{AsyncRead, AsyncWrite};
+    /// # use futures_io::{AsyncRead, AsyncWrite};
     /// # use h2::server::*;
     /// # use std::time::Duration;
     /// #
@@ -1089,7 +1089,7 @@ impl Builder {
     /// Basic usage:
     ///
     /// ```
-    /// # use tokio::io::{AsyncRead, AsyncWrite};
+    /// # use futures_io::{AsyncRead, AsyncWrite};
     /// # use h2::server::*;
     /// #
     /// # fn doc<T: AsyncRead + AsyncWrite + Unpin>(my_io: T)
@@ -1109,7 +1109,7 @@ impl Builder {
     /// type will be `&'static [u8]`.
     ///
     /// ```
-    /// # use tokio::io::{AsyncRead, AsyncWrite};
+    /// # use futures_io::{AsyncRead, AsyncWrite};
     /// # use h2::server::*;
     /// #
     /// # fn doc<T: AsyncRead + AsyncWrite + Unpin>(my_io: T)
@@ -1455,10 +1455,8 @@ where
         let mut rem = PREFACE.len() - self.pos;
 
         while rem > 0 {
-            let mut buf = ReadBuf::new(&mut buf[..rem]);
-            ready!(Pin::new(self.inner_mut()).poll_read(cx, &mut buf))
+            let n = ready!(Pin::new(self.inner_mut()).poll_read(cx, &mut buf[..rem]))
                 .map_err(crate::Error::from_io)?;
-            let n = buf.filled().len();
             if n == 0 {
                 return Poll::Ready(Err(crate::Error::from_io(io::Error::new(
                     io::ErrorKind::UnexpectedEof,
@@ -1466,7 +1464,7 @@ where
                 ))));
             }
 
-            if &PREFACE[self.pos..self.pos + n] != buf.filled() {
+            if &PREFACE[self.pos..self.pos + n] != &buf[..n] {
                 proto_err!(conn: "read_preface: invalid preface");
                 // TODO: Should this just write the GO_AWAY frame directly?
                 return Poll::Ready(Err(Error::library_go_away(Reason::PROTOCOL_ERROR).into()));

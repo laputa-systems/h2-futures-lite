@@ -6,7 +6,7 @@ publish = false
 edition = "2018"
 
 [dependencies]
-h2 = { path = "../..", features = ["stream", "unstable"] }
+h2 = { package = "h2-futures", path = "../..", features = ["stream", "unstable"] }
 
 atty = "0.2"
 bytes = "1"

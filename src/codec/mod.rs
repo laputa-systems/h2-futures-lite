@@ -10,13 +10,13 @@ use self::framed_write::FramedWrite;
 use crate::frame::{self, Data, Frame};
 use crate::proto::Error;
 
+use crate::futures_codec::length_delimited;
 use bytes::Buf;
 use futures_core::Stream;
+use futures_io::{AsyncRead, AsyncWrite};
 use futures_sink::Sink;
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use tokio::io::{AsyncRead, AsyncWrite};
-use tokio_util::codec::length_delimited;
 
 use std::io;
 

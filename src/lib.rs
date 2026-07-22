@@ -1,3 +1,4 @@
+#![allow(unused)]
 //! An asynchronous, HTTP/2 server and client implementation.
 //!
 //! This library implements the [HTTP/2] specification. The implementation is
@@ -110,6 +111,7 @@ macro_rules! ready {
 #[cfg_attr(feature = "unstable", allow(missing_docs))]
 mod codec;
 mod error;
+mod futures_codec;
 mod hpack;
 
 #[cfg(not(feature = "unstable"))]

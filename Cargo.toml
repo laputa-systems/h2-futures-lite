@@ -1,5 +1,5 @@
 [package]
-name = "h2-futures"
+name = "laputa-h2-futures"
 # When releasing to crates.io:
 # - Update CHANGELOG.md.
 # - Create git tag
@@ -10,7 +10,7 @@ authors = [
   "Sean McArthur <sean@seanmonstar.com>",
 ]
 description = "An HTTP/2 client and server"
-documentation = "https://docs.rs/h2"
+documentation = "https://docs.rs/laputa-h2-futures"
 repository = "https://github.com/hyperium/h2"
 readme = "README.md"
 keywords = ["http", "async", "non-blocking"]
@@ -18,6 +18,9 @@ categories = ["asynchronous", "web-programming", "network-programming"]
 exclude = ["fixtures/**", "ci/**"]
 edition = "2021"
 rust-version = "1.63"
+
+[lib]
+name = "h2"
 
 [features]
 # Enables `futures::Stream` implementations for various types.

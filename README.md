@@ -3,12 +3,12 @@
 A Tokio aware, HTTP/2 client & server implementation for Rust.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Crates.io](https://img.shields.io/crates/v/h2.svg)](https://crates.io/crates/h2)
-[![Documentation](https://docs.rs/h2/badge.svg)][dox]
+[![Crates.io](https://img.shields.io/crates/v/laputa-h2-futures.svg)](https://crates.io/crates/laputa-h2-futures)
+[![Documentation](https://docs.rs/laputa-h2-futures/badge.svg)][dox]
 
 More information about this crate can be found in the [crate documentation][dox].
 
-[dox]: https://docs.rs/h2
+[dox]: https://docs.rs/laputa-h2-futures
 
 ## Features
 
@@ -36,7 +36,7 @@ To use `h2`, first add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-h2 = "0.4"
+h2 = { package = "laputa-h2-futures", version = "0.4" }
 ```
 
 Next, add this to your crate:

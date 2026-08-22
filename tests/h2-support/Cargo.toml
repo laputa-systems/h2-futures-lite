@@ -6,7 +6,7 @@ publish = false
 edition = "2018"
 
 [dependencies]
-h2 = { package = "laputa-h2-futures", path = "../..", features = ["stream", "unstable"] }
+h2 = { package = "laputa-h2-futures-lite", path = "../..", features = ["stream", "unstable"] }
 
 atty = "0.2"
 bytes = "1"

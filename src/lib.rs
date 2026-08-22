@@ -90,6 +90,113 @@
 //#![cfg_attr(test, feature(test))]
 #![cfg_attr(test, deny(warnings))]
 
+// Keep the existing `tracing::...` call sites working when instrumentation is
+// disabled. With the feature enabled, these paths resolve directly to the
+// optional dependency; otherwise, this crate acts as a small no-op substitute.
+#[cfg(not(feature = "tracing"))]
+extern crate self as tracing;
+
+#[cfg(not(feature = "tracing"))]
+#[macro_export]
+#[doc(hidden)]
+macro_rules! trace {
+    ($($arg:tt)*) => {{}};
+}
+
+#[cfg(not(feature = "tracing"))]
+#[macro_export]
+#[doc(hidden)]
+macro_rules! debug {
+    ($($arg:tt)*) => {{}};
+}
+
+#[cfg(not(feature = "tracing"))]
+#[macro_export]
+#[doc(hidden)]
+macro_rules! warn {
+    ($($arg:tt)*) => {{}};
+}
+
+#[cfg(not(feature = "tracing"))]
+#[macro_export]
+#[doc(hidden)]
+macro_rules! trace_span {
+    ($($arg:tt)*) => {
+        $crate::Span::none()
+    };
+}
+
+#[cfg(not(feature = "tracing"))]
+#[macro_export]
+#[doc(hidden)]
+macro_rules! debug_span {
+    ($($arg:tt)*) => {
+        $crate::Span::none()
+    };
+}
+
+#[cfg(not(feature = "tracing"))]
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Span;
+
+#[cfg(not(feature = "tracing"))]
+impl Span {
+    pub(crate) fn current() -> Self {
+        Self
+    }
+
+    pub(crate) fn none() -> Self {
+        Self
+    }
+
+    pub(crate) fn enter(&self) -> Entered {
+        Entered
+    }
+
+    pub(crate) fn follows_from(&self, _span: Self) {}
+
+    pub(crate) fn in_scope<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce() -> R,
+    {
+        f()
+    }
+}
+
+#[cfg(not(feature = "tracing"))]
+pub(crate) struct Entered;
+
+#[cfg(not(feature = "tracing"))]
+pub(crate) mod instrument {
+    use std::future::Future;
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
+
+    #[repr(transparent)]
+    pub(crate) struct Instrumented<T>(pub(crate) T);
+
+    pub(crate) trait Instrument: Sized {
+        fn instrument(self, _span: super::Span) -> Instrumented<Self> {
+            Instrumented(self)
+        }
+    }
+
+    impl<T> Instrument for T {}
+
+    impl<T: Future> Future for Instrumented<T> {
+        type Output = T::Output;
+
+        fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+            // SAFETY: `Instrumented<T>` is a transparent wrapper around `T`,
+            // so pinning the wrapper also pins its inner future.
+            unsafe { self.map_unchecked_mut(|instrumented| &mut instrumented.0) }.poll(cx)
+        }
+    }
+}
+
+#[cfg(not(feature = "tracing"))]
+pub(crate) use instrument::{Instrument, Instrumented};
+
 macro_rules! proto_err {
     (conn: $($msg:tt)+) => {
         tracing::debug!("connection error PROTOCOL_ERROR -- {};", format_args!($($msg)+))
